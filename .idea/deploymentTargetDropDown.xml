@@ -21,6 +21,22 @@
           <timeTargetWasSelectedWithDropDown value="2024-01-20T02:26:54.481671Z" />
         </State>
       </entry>
+      <entry key="retrofitdownload">
+        <State>
+          <targetSelectedWithDropDown>
+            <Target>
+              <type value="QUICK_BOOT_TARGET" />
+              <deviceKey>
+                <Key>
+                  <type value="VIRTUAL_DEVICE_PATH" />
+                  <value value="$USER_HOME$/.android/avd/Pixel_2_API_34.avd" />
+                </Key>
+              </deviceKey>
+            </Target>
+          </targetSelectedWithDropDown>
+          <timeTargetWasSelectedWithDropDown value="2024-01-21T03:40:56.983643Z" />
+        </State>
+      </entry>
     </value>
   </component>
 </project>

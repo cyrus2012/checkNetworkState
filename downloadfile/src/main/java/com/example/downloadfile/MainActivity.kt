@@ -16,6 +16,21 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
+import android.os.storage.StorageManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import okhttp3.ResponseBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
     val TAG = "Download Main"
@@ -23,14 +38,30 @@ class MainActivity : AppCompatActivity() {
     val publicDownloadsDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) as File
     val fileName = "photo.zip"
     val subDirectory = "testDownload"
+    lateinit var networkRequestScope: CoroutineScope
+    val downloadLinkId = "1XSTImggtvJ8oZYIB8sEByMuZipiabCaS"
+    val downloadLineExport ="download"
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        networkRequestScope      = CoroutineScope(Job() + Dispatchers.Default)
+
         val downloadButton: Button = findViewById(R.id.downloadManagerButton) as Button
         downloadButton.setOnClickListener {
             Log.d(TAG, "start download manager")
             startDownloadWithDownloadManager()
         }
+
+        val retrofitDownloadbutton: Button = findViewById(R.id.retrofitDownloadButton)
+        retrofitDownloadbutton.setOnClickListener {
+            Log.d(TAG, "click Retrofit download button")
+            startDownloadWithRetrofit()
+        }
+
+
     }
 
 
@@ -51,6 +82,11 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(downloadListener)
     }
 
+
+    override fun onDestroy() {
+        super.onDestroy()
+        networkRequestScope.cancel()
+    }
 
     fun startDownloadWithDownloadManager(){
         val saveFileName = File(publicDownloadsDirectory, subDirectory + "/" + fileName)
@@ -113,10 +149,99 @@ class MainActivity : AppCompatActivity() {
 
 
             }
-
-
         }
 
+    }
+
+    fun startDownloadWithRetrofit(){
+
+        val downloadFileService: DownloadFileService = RetrofitServiceCreatorToHomeWebsite.create(DownloadFileService::class.java)
+        val call = downloadFileService.downloadFile(downloadLineExport, downloadLinkId)
+
+
+        call.enqueue(object: Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>){
+                if(response.isSuccessful){
+                    Log.d(TAG, "The file is found on server")
+                    //indicate the download location
+                    val customDirectory = File(applicationContext.cacheDir, "custom")
+                    if( !customDirectory.exists())
+                        customDirectory.mkdir()
+                    val filePath = File(customDirectory, fileName)
+
+                    getAllocatableBytes(filePath)
+
+                    networkRequestScope.launch {
+                        writeResponseBodyToStorage(response.body()!!, filePath)
+
+                        Log.d(TAG, "end download. File is saved on ${filePath.absolutePath}")
+                    }
+                    Log.d(TAG, "Callback.onResponse end")
+                }else{
+                    Log.e(TAG, "fail to connect server: " + response.toString())
+                }
+            }
+
+
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                Log.e(TAG, "Request Download Error", t)
+            }
+        })
+    }
+
+
+
+
+    suspend fun writeResponseBodyToStorage(body: ResponseBody, path: File){
+
+        //withContext(Dispatchers.IO) {
+            var inputStream: InputStream? = null
+            var outputStream: OutputStream? = null
+            val fileSize = body.contentLength()
+            var byteDownloaded = 0
+
+
+            Log.d(TAG, "file will save to ${path.absoluteFile} with size $fileSize")
+            try {
+                inputStream = body.byteStream()
+                outputStream = FileOutputStream(path)
+                val buffer = ByteArray(4 * 1024) //allocate 4k Byte buffer
+                while (true) {
+                    val byteRead = inputStream.read(buffer)
+                    if (byteRead < 0)
+                        break
+                    outputStream.write(buffer, 0, byteRead)
+                    byteDownloaded += byteRead
+                    Log.d(TAG, "download progress $byteDownloaded of $fileSize")
+                }
+                outputStream.flush()
+
+
+            } catch (ex: IOException) {
+                Log.e(TAG, "fail to save file", ex)
+            } finally {
+                inputStream?.close()
+                outputStream?.close()
+            }
+        //}
+
+
+    }
+
+
+    fun getAllocatableBytes(fileDirectory: File): Long {
+        val storageManager: StorageManager = applicationContext.getSystemService(Context.STORAGE_SERVICE) as StorageManager
+        val apSpecificInternalDirUuid: UUID = storageManager.getUuidForPath(fileDirectory)
+        val availableBytes: Long = storageManager.getAllocatableBytes(apSpecificInternalDirUuid)
+        when(availableBytes){
+            in 0..5000 -> Log.d(TAG, "available volume is $availableBytes B")
+            in 5001..5000000 -> Log.d(TAG, "available volume is " + (availableBytes/1024) +"kB")
+            in 5000000..5000000000 -> Log.d(TAG, "available volume is " + (availableBytes/ (1024 * 1024)) +"MB")
+            else -> Log.d(TAG, "available volume is " + (availableBytes/ (1024 * 1024 * 1024)) +"GB")
+        }
+
+
+        return availableBytes
     }
 
 
