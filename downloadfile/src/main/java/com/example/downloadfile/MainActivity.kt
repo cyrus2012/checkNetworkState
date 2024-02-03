@@ -195,34 +195,34 @@ class MainActivity : AppCompatActivity() {
     suspend fun writeResponseBodyToStorage(body: ResponseBody, path: File){
 
         //withContext(Dispatchers.IO) {
-            var inputStream: InputStream? = null
-            var outputStream: OutputStream? = null
-            val fileSize = body.contentLength()
-            var byteDownloaded = 0
+        var inputStream: InputStream? = null
+        var outputStream: OutputStream? = null
+        val fileSize = body.contentLength()
+        var byteDownloaded = 0
 
 
-            Log.d(TAG, "file will save to ${path.absoluteFile} with size $fileSize")
-            try {
-                inputStream = body.byteStream()
-                outputStream = FileOutputStream(path)
-                val buffer = ByteArray(4 * 1024) //allocate 4k Byte buffer
-                while (true) {
-                    val byteRead = inputStream.read(buffer)
-                    if (byteRead < 0)
-                        break
-                    outputStream.write(buffer, 0, byteRead)
-                    byteDownloaded += byteRead
-                    Log.d(TAG, "download progress $byteDownloaded of $fileSize")
-                }
-                outputStream.flush()
-
-
-            } catch (ex: IOException) {
-                Log.e(TAG, "fail to save file", ex)
-            } finally {
-                inputStream?.close()
-                outputStream?.close()
+        Log.d(TAG, "file will save to ${path.absoluteFile} with size $fileSize")
+        try {
+            inputStream = body.byteStream()
+            outputStream = FileOutputStream(path)
+            val buffer = ByteArray(4 * 1024) //allocate 4k Byte buffer
+            while (true) {
+                val byteRead = inputStream.read(buffer)
+                if (byteRead < 0)
+                    break
+                outputStream.write(buffer, 0, byteRead)
+                byteDownloaded += byteRead
+                Log.d(TAG, "download progress $byteDownloaded of $fileSize")
             }
+            outputStream.flush()
+
+
+        } catch (ex: IOException) {
+            Log.e(TAG, "fail to save file", ex)
+        } finally {
+            inputStream?.close()
+            outputStream?.close()
+        }
         //}
 
 

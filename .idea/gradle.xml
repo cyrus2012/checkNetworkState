@@ -11,7 +11,7 @@
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/downloadfile" />
-            <option value="$PROJECT_DIR$/retrofitdownload" />
+            <option value="$PROJECT_DIR$/okhttpdownload" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="false" />
