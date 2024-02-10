@@ -142,11 +142,11 @@ class MainActivity : ComponentActivity() {
             fileHeaders.forEach {
                 Log.d(TAG, "Entry name: ${it.fileName} size: ${it.uncompressedSize}")
 
-                if(!it.isDirectory){
+                if (!it.isDirectory) {
                     zipFile.extractFile(it, unzipedFolder.absolutePath)
                     uncompressedSize += it.uncompressedSize
                     val percentage = (((uncompressedSize * 100) / totalSize))
-                    runOnUiThread{
+                    runOnUiThread {
                         unzipProgressBar.progress = percentage.toInt()
                         unzipProgressText.text = "${percentage.toInt()}%"
                     }
